@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const { chatRouter } = require("./src/router/chatRouter");
 const userRouter = require("./src/router/userRouter");
 require("dotenv").config({ path: "./.env" });
 
@@ -21,6 +22,7 @@ mongoose
   });
 
 app.use("/api/user", userRouter);
+app.use("/api/chat", chatRouter);
 
 app.post("/ping", (req, res) => {
   res.status(200).json({
