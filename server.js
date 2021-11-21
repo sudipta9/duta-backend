@@ -1,8 +1,5 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const isUserExists = require("./src/helper/isUserExists");
-const isUserNameExists = require("./src/helper/isUserNameExists");
-const userModel = require("./src/model/userModel");
 const userRouter = require("./src/router/userRouter");
 require("dotenv").config({ path: "./.env" });
 

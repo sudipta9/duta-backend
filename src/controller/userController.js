@@ -22,7 +22,6 @@ const signUpController = async (req, res) => {
             { $set: { userId: user._id } }
           );
           const token = await user.generateAccessToken();
-
           res.status(201).header("token", token).json({
             success: true,
             message: "User created successfully",
@@ -54,4 +53,52 @@ const signUpController = async (req, res) => {
   }
 };
 
-module.exports = { signUpController };
+const signInController = async (req, res) => {
+  const { userName, mobileNumber, password } = req.body;
+  if (userName || mobileNumber) {
+    try {
+      const user = await userModel.findOne({
+        $or: [{ userName: userName }, { mobileNumber: mobileNumber }],
+      });
+      if (!user || user === null) {
+        return res.status(401).json({
+          success: false,
+          message: "User not exists",
+        });
+      } else {
+        if (password) {
+          if (password === user.password) {
+            const token = user.generateAccessToken(user._id);
+            return res.status(200).header("Authorization", token).json({
+              success: true,
+              token: token,
+            });
+          } else {
+            return res.status(401).json({
+              success: false,
+              message: "Invalid password entered",
+            });
+          }
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: "Enter your password to login",
+          });
+        }
+      }
+    } catch (error) {
+      console.log(error.msg);
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+      });
+    }
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: "Enter username or mobile number and password to login",
+    });
+  }
+};
+
+module.exports = { signUpController, signInController };
