@@ -11,66 +11,73 @@ const sendMessageController = async (req, res) => {
         success: false,
         message: "Please enter some message",
       });
-    try {
-      const userChat = await chatModel.findOne({
-        $and: [{ userId: senderId }, { receiverId: receiverId }],
-      });
-      const receiverChat = await chatModel.findOne({
-        $and: [{ userId: receiverId }, { senderId: senderId }],
-      });
-      if (userChat && receiverChat) {
-        userChat.chats.push({
-          messageBody: message,
-          status: "sent",
-          seenOrNot: "unseen",
+    if (senderId !== receiverId) {
+      try {
+        const userChat = await chatModel.findOne({
+          $and: [{ userId: senderId }, { otherPersonId: receiverId }],
         });
-        receiverChat.chats.push({
-          messageBody: message,
-          status: "received",
+        const receiverChat = await chatModel.findOne({
+          $and: [{ userId: receiverId }, { otherPersonId: senderId }],
         });
-        receiverChat.unReadCount += 1;
-        await userChat.save();
-        await receiverChat.save();
-      } else {
-        if (await userModel.exists({ userId: receiverId })) {
-          const newUserChat = new chatModel({
-            userId: senderId,
-            receiverId: receiverId,
-            unReadCount: 0,
-          });
-          const newReceiverChat = new chatModel({
-            userId: receiverId,
-            senderId: senderId,
-            unReadCount: 0,
-          });
-          newUserChat.chats.push({
+        if (userChat && receiverChat) {
+          userChat.chats.push({
             messageBody: message,
             status: "sent",
             seenOrNot: "unseen",
           });
-          newReceiverChat.chats.push({
+          receiverChat.chats.push({
             messageBody: message,
             status: "received",
           });
-          newReceiverChat.unReadCount += 1;
-          await newUserChat.save();
-          await newReceiverChat.save();
+          receiverChat.unReadCount += 1;
+          await userChat.save();
+          await receiverChat.save();
         } else {
-          return res.status(400).json({
-            success: false,
-            message: "User Not Exists",
-          });
+          if (await userModel.exists({ userId: receiverId })) {
+            const newUserChat = new chatModel({
+              userId: senderId,
+              otherPersonId: receiverId,
+              unReadCount: 0,
+            });
+            const newReceiverChat = new chatModel({
+              userId: receiverId,
+              otherPersonId: senderId,
+              unReadCount: 0,
+            });
+            newUserChat.chats.push({
+              messageBody: message,
+              status: "sent",
+              seenOrNot: "unseen",
+            });
+            newReceiverChat.chats.push({
+              messageBody: message,
+              status: "received",
+            });
+            newReceiverChat.unReadCount += 1;
+            await newUserChat.save();
+            await newReceiverChat.save();
+          } else {
+            return res.status(400).json({
+              success: false,
+              message: "User Not Exists",
+            });
+          }
         }
+        return res.status(200).json({
+          success: true,
+          message: "Message Sent",
+        });
+      } catch (error) {
+        console.log(error);
+        return res.status(400).json({
+          success: false,
+          message: "Something happened please try again",
+        });
       }
-      return res.status(200).json({
-        success: true,
-        message: "Message Sent",
-      });
-    } catch (error) {
-      console.log(error);
+    } else {
       return res.status(400).json({
         success: false,
-        message: "Something happened please try again",
+        message: "message to own ID is not permitted",
       });
     }
   } else {
@@ -81,4 +88,75 @@ const sendMessageController = async (req, res) => {
   }
 };
 
-module.exports = { sendMessageController };
+const getAllChats = async (req, res) => {
+  const userId = req.userId;
+  //   console.log(userId);
+  try {
+    const userChats = await chatModel.find({
+      userId: userId,
+    });
+    // console.log(userChats);
+    return res.status(200).json({
+      success: true,
+      data: userChats,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({
+      success: false,
+      message: "Something Happened",
+    });
+  }
+};
+
+const getUserChat = async (req, res) => {
+  const userId = req.userId;
+  const otherPersonId = req.body.otherPersonId;
+  if (otherPersonId) {
+    try {
+      const chats = await chatModel.findOne({
+        $and: [{ userId: userId }, { otherPersonId: otherPersonId }],
+      });
+      if (!chats || chats === null) {
+        return res.status(200).json({
+          success: true,
+          data: [],
+        });
+      }
+      await chatModel.updateMany(
+        {
+          $and: [
+            { userId: otherPersonId },
+            { otherPersonId: userId },
+            { "chats.seenOrNot": "unseen" },
+          ],
+        },
+        {
+          $set: {
+            "chats.$[].seenOrNot": "seen",
+          },
+        }
+      );
+      chats.unReadCount = 0;
+      await chats.save();
+
+      return res.status(200).json({
+        success: true,
+        data: chats.chats,
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({
+        success: false,
+        message: "unexpected error occurred",
+      });
+    }
+  } else {
+    return res.status(400).json({
+      success: false,
+      message: "person Id not provided",
+    });
+  }
+};
+
+module.exports = { sendMessageController, getAllChats, getUserChat };
