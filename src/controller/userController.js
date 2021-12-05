@@ -4,6 +4,7 @@ const userModel = require("../model/userModel");
 
 const signUpController = async (req, res) => {
   const { password, name, userName, mobileNumber } = req.body;
+  // console.log(req.body);
   if (password && name && userName && mobileNumber) {
     try {
       if (await isUserNameExists(userName)) {
@@ -22,10 +23,16 @@ const signUpController = async (req, res) => {
             { $set: { userId: user._id } }
           );
           const token = await user.generateAccessToken();
-          res.status(201).header("token", token).json({
+
+          await res.status(201).json({
+            token: token,
             success: true,
             message: "User created successfully",
           });
+          // res.status(201).cookie("token", token).json({
+          //   success: true,
+          //   message: "User created successfully",
+          // });
         } else {
           return res.status(401).json({
             success: false,
@@ -69,9 +76,10 @@ const signInController = async (req, res) => {
         if (password) {
           if (password === user.password) {
             const token = user.generateAccessToken(user._id);
-            return res.status(200).header("Authorization", token).json({
+            return res.status(200).header("token", token).json({
               success: true,
               token: token,
+              message: "Login Success",
             });
           } else {
             return res.status(401).json({

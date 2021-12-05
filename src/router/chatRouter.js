@@ -12,6 +12,6 @@ const chatRouter = express.Router();
 
 chatRouter.post("/send", isUserAuthenticated, sendMessageController);
 chatRouter.get("/get-all", isUserAuthenticated, getAllChats);
-chatRouter.get("/get-user-chat", isUserAuthenticated, getUserChat);
+chatRouter.post("/get-user-chat", isUserAuthenticated, getUserChat);
 
 module.exports = { chatRouter };
