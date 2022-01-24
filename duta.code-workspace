@@ -1,0 +1,15 @@
+{
+  "folders": [
+	{
+		"path": "..\\duta-frontend"
+	},
+	{
+		"path": "."
+	}
+],
+  "settings": {
+    "files.associations": {
+      "*.js": "javascriptreact"
+    }
+  }
+}
